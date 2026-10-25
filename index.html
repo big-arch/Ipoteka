@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#021a2b">
+  <meta name="description" content="Личный дашборд ипотек: платежи, график, досрочное погашение. Данные хранятся только в этом браузере.">
+  <title>Ипотека</title>
+  <script>(function(){var t=null;try{t=localStorage.getItem("ipoteka.theme")}catch(e){}document.documentElement.dataset.theme=t||"dark"})();</script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>
+    </div>
+    <div class="titles">
+      <h1>Ипотека</h1>
+      <div class="today" id="today"></div>
+    </div>
+    <button class="icon-btn" id="theme" type="button" aria-label="Сменить тему">
+      <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </header>
+
+  <main id="view">
+    <!-- Главная -->
+    <section class="screen" data-screen="home">
+      <div id="home-empty" class="empty card" hidden>
+        <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg></div>
+        <h2>Пока нет ни одного кредита</h2>
+        <p class="muted">Внесите кредиты во вкладке «Данные» или загрузите файл резервной копии. Данные хранятся только в этом браузере.</p>
+        <div class="actions" style="justify-content:center">
+          <a class="btn" href="#data">Добавить кредит</a>
+          <label class="btn ghost">Загрузить копию<input type="file" class="import-input" accept="application/json,.json" hidden></label>
+        </div>
+      </div>
+      <div id="home-content"></div>
+    </section>
+
+    <!-- График -->
+    <section class="screen" data-screen="schedule" hidden>
+      <div class="card st-in">
+        <div class="seg" id="sched-seg"></div>
+        <div id="sched-summary" class="kv"></div>
+        <div class="chart" id="sched-chart"></div>
+        <div class="legend"><span><i class="interest"></i>проценты</span><span><i class="principal"></i>тело долга</span><span><i class="line"></i>остаток</span><span><i class="today"></i>сегодня</span></div>
+      </div>
+      <div class="card st-in" style="--i:1">
+        <div class="row-between" style="margin-bottom:10px">
+          <h2>По месяцам</h2>
+          <label class="check"><input type="checkbox" id="sched-future" checked> только будущие</label>
+        </div>
+        <div class="table-wrap tall"><table class="tbl" id="sched-table"></table></div>
+      </div>
+    </section>
+
+    <!-- Досрочка -->
+    <section class="screen" data-screen="prepay" hidden>
+      <div class="card st-in">
+        <h2>Калькулятор досрочки</h2>
+        <form id="prepay-form" class="form">
+          <div class="seg" id="pp-seg"></div>
+          <div class="grid2">
+            <label class="field">Сумма, ₽<input id="pp-amount" inputmode="decimal" autocomplete="off" placeholder="300 000"></label>
+            <label class="field">Дата<input id="pp-date" type="date"></label>
+          </div>
+          <button class="btn" type="submit">Посчитать</button>
+        </form>
+      </div>
+      <div class="card" id="pp-result" hidden></div>
+      <div class="card" id="pp-where" hidden></div>
+      <div class="card st-in" style="--i:1" id="pp-list"></div>
+    </section>
+
+    <!-- Данные -->
+    <section class="screen" data-screen="data" hidden>
+      <div class="card st-in">
+        <div class="row-between" style="margin-bottom:6px"><h2>Кредиты</h2><button class="btn small" id="add-loan" type="button">+ Кредит</button></div>
+        <div id="loan-list"></div>
+      </div>
+
+      <div class="card view-in" id="loan-editor" hidden>
+        <h2 id="editor-title">Кредит</h2>
+        <form id="loan-form" class="form">
+          <label class="field">Название<input name="name" required placeholder="Например, Новостройка 2026"></label>
+          <div class="grid2">
+            <label class="field">Остаток долга, ₽<input name="balance" inputmode="decimal" required></label>
+            <label class="field">на дату<input name="balanceDate" type="date" required></label>
+          </div>
+          <p class="hint">Новый кредит: сумма и дата выдачи. Старый: остаток после последнего платежа и дата этого платежа.</p>
+          <div class="grid2">
+            <label class="field">Ставка, % годовых<input name="rate" inputmode="decimal" required></label>
+            <label class="field">Платежей осталось<input name="n" inputmode="numeric" required></label>
+          </div>
+          <div class="grid2">
+            <label class="field">Следующий платёж<input name="firstDate" type="date" required></label>
+            <label class="field">Платёж по договору, ₽<input name="payment" inputmode="decimal" placeholder="пусто = по формуле"></label>
+          </div>
+          <div class="grid2">
+            <label class="field">Исходная сумма кредита, ₽<input name="origAmount" inputmode="decimal" placeholder="для шкалы прогресса"></label>
+            <label class="field">Дата договора<input name="contractDate" type="date"></label>
+          </div>
+          <label class="check"><input type="checkbox" name="firstInterestOnly"> Первый платёж — только проценты</label>
+          <label class="field">Как начислять проценты
+            <select name="mode">
+              <option value="daily">По дням, 365/366 (как в банке)</option>
+              <option value="monthly">Ставка / 12 (упрощённо)</option>
+            </select>
+          </label>
+          <div class="actions">
+            <button class="btn" type="submit">Сохранить</button>
+            <button class="btn ghost" type="button" id="cancel-loan">Отмена</button>
+            <button class="btn danger" type="button" id="delete-loan">Удалить</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card st-in" style="--i:1">
+        <h2>Квартира</h2>
+        <form id="settings-form" class="form">
+          <div class="grid2">
+            <label class="field">Дата ДДУ<input name="ddDate" type="date"></label>
+            <label class="field">Передача ключей до<input name="keysDate" type="date"></label>
+          </div>
+          <button class="btn" type="submit">Сохранить</button>
+        </form>
+      </div>
+
+      <div class="card st-in" style="--i:2">
+        <h2>Резервная копия</h2>
+        <p class="muted" style="margin-top:0">Всё хранится только в этом браузере. Чтобы перенести данные на телефон, скачайте копию здесь и загрузите её там.</p>
+        <div class="actions">
+          <button class="btn" type="button" id="export">Скачать копию</button>
+          <label class="btn ghost">Загрузить копию<input type="file" class="import-input" accept="application/json,.json" hidden></label>
+          <button class="btn danger" type="button" id="wipe">Стереть всё</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" id="tabs">
+    <span class="ind" aria-hidden="true"></span>
+    <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>Главная</a>
+    <a href="#schedule" data-tab="schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>График</a>
+    <a href="#prepay" data-tab="prepay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M8 13l4 4 4-4"/></svg>Досрочка</a>
+    <a href="#data" data-tab="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>Данные</a>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="calc.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+*.log
+.DS_Store
+Thumbs.db
+# личные данные никогда не коммитим
+*backup*.json
+ipoteka-*.json
+СОСТОЯНИЕ_РАБОТЫ.md
