@@ -56,8 +56,12 @@
    * loan: { balance, balanceDate, rate (% годовых), n (число платежей), firstDate, payDay,
    *         payment (необязательно — платёж по договору), firstInterestOnly, mode: "daily"|"monthly" }
    * prepays: [{ date, amount, kind: "payment" (уменьшить платёж) | "term" (уменьшить срок) }]
+   * opts: { monthlyExtra, extraFrom, extraKind } — каждый месяц после платежа вносить ещё monthlyExtra;
+   *       { keepTotal, extraFrom } — платёж уменьшается, но платить keepTotal, разницу — досрочно в платёж.
    */
-  function schedule(loan, prepays) {
+  function schedule(loan, prepays, opts) {
+    opts = opts || {};
+    const extraFromT = opts.extraFrom ? parseDate(opts.extraFrom) : 0;
     const yearRate = Number(loan.rate) / 100;
     const r = yearRate / 12;
     const n = Math.max(1, Math.round(Number(loan.n)));
@@ -120,6 +124,20 @@
         balance = round2(balance - amt);
         applied.push({ date: p.date, amount: amt, kind: p.kind });
         if (p.kind === "payment") A = round2(annuity(balance, r, n - k - 1));
+      }
+
+      // регулярная досрочка сверх платежа (не в месяц «только проценты»)
+      if (t >= extraFromT && balance > 0 && principal > 0) {
+        let extraAmt = 0;
+        let kind = opts.extraKind === "payment" ? "payment" : "term";
+        if (opts.keepTotal > 0) { extraAmt = opts.keepTotal - pay; kind = "payment"; }
+        else if (opts.monthlyExtra > 0) extraAmt = opts.monthlyExtra;
+        extraAmt = round2(Math.min(Math.max(0, extraAmt), balance));
+        if (extraAmt > 0) {
+          balance = round2(balance - extraAmt);
+          applied.push({ date: fmtISO(t), amount: extraAmt, kind, auto: true });
+          if (kind === "payment") A = round2(annuity(balance, r, n - k - 1));
+        }
       }
 
       rows.push({ k: k + 1, date: fmtISO(t), t, payment: pay, interest, principal, balance, prepays: applied });
@@ -189,11 +207,72 @@
       term: { ...pick(sT), paymentAfter: after(sT), saving: round2(s0.totalInterest - sT.totalInterest), monthsCut: s0.count - sT.count },
     };
   }
+  // первый «полный» платёж после даты (для показа нового платежа)
+  function paymentAfter(s, iso) {
+    const t = parseDate(iso);
+    const row = s.rows.find((x) => x.t > t && x.principal > 0 && x.k < s.rows.length);
+    return row ? row.payment : s.currentPayment;
+  }
+
+  /**
+   * Варианты досрочки по одному кредиту: разово lump (в дату from) и/или каждый месяц monthly сверх платежа.
+   * term — сокращать срок; payment — уменьшать платёж; keep — уменьшать платёж, но платить как раньше.
+   */
+  function variants(loan, { lump = 0, monthly = 0, from }) {
+    const base = loan.prepays || [];
+    const withLump = (kind) => (lump > 0 ? base.concat([{ date: from, amount: lump, kind }]) : base);
+    const s0 = schedule(loan, base);
+    const regular = paymentAfter(s0, from);
+    const out = {
+      base: s0,
+      term: schedule(loan, withLump("term"), { monthlyExtra: monthly, extraFrom: from, extraKind: "term" }),
+      payment: schedule(loan, withLump("payment"), { monthlyExtra: monthly, extraFrom: from, extraKind: "payment" }),
+      keep: schedule(loan, withLump("payment"), { keepTotal: regular + monthly, extraFrom: from }),
+    };
+    const res = { regular };
+    const [fy, fm, fd] = from.split("-").map(Number);
+    const yearLater = fmtISO(Date.UTC(fy + 1, fm - 1, fd));
+    for (const [key, s] of Object.entries(out)) {
+      res[key] = {
+        totalInterest: s.totalInterest, lastDate: s.lastDate, count: s.count,
+        paymentAfter: paymentAfter(s, from),
+        paymentYear: paymentAfter(s, yearLater),
+        saving: round2(s0.totalInterest - s.totalInterest),
+        monthsCut: s0.count - s.count,
+      };
+    }
+    return res;
+  }
+
+  /**
+   * План «лавина»: разовая сумма и ежемесячный излишек идут в кредит с самой высокой ставкой;
+   * когда он закрыт, его платёж плюс излишек переходят на следующий. loans уже отсортированы.
+   */
+  function avalanche(loans, { lump = 0, monthly = 0, from }) {
+    let roll = monthly;
+    let start = from;
+    let lumpLeft = lump;
+    const out = [];
+    for (const loan of loans) {
+      const base = loan.prepays || [];
+      const s0 = schedule(loan, base);
+      const prepays = lumpLeft > 0 ? base.concat([{ date: from, amount: lumpLeft, kind: "term" }]) : base;
+      const s = schedule(loan, prepays, { monthlyExtra: roll, extraFrom: start, extraKind: "term" });
+      const used = s.rows.reduce((a, x) => a + x.prepays.filter((p) => p.date === from && !p.auto).reduce((b, p) => b + p.amount, 0), 0);
+      lumpLeft = Math.max(0, lumpLeft - used);
+      out.push({ loan, base: s0, plan: s, saving: round2(s0.totalInterest - s.totalInterest), monthsCut: s0.count - s.count });
+      // после закрытия этого кредита его платёж добавляется к излишку для следующего
+      roll += paymentAfter(s0, from);
+      start = s.lastDate;
+    }
+    return out;
+  }
+
   function pick(s) {
     return { totalInterest: s.totalInterest, totalPaid: s.totalPaid, lastDate: s.lastDate, count: s.count };
   }
 
-  const Calc = { parseDate, fmtISO, paymentDate, annuity, accrueDaily, schedule, statusAt, comparePrepay, round2 };
+  const Calc = { parseDate, fmtISO, paymentDate, annuity, accrueDaily, schedule, statusAt, comparePrepay, variants, avalanche, paymentAfter, round2 };
   root.Calc = Calc;
   if (typeof module !== "undefined" && module.exports) module.exports = Calc;
 })(typeof window !== "undefined" ? window : globalThis);

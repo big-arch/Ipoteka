@@ -3,24 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#021a2b">
-  <meta name="description" content="Личный дашборд ипотек: платежи, график, досрочное погашение. Данные хранятся только в этом браузере.">
-  <title>Ипотека</title>
+  <meta name="theme-color" content="#0c0f0e">
+  <meta name="description" content="Семейные финансы: ипотеки, график платежей, досрочное погашение и распределение денег.">
+  <title>Наши финансы</title>
   <script>(function(){var t=null;try{t=localStorage.getItem("ipoteka.theme")}catch(e){}document.documentElement.dataset.theme=t||"dark"})();</script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="top">
     <div class="brand" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V4h6a4 4 0 0 1 0 8H6M6 16h8"/></svg>
     </div>
     <div class="titles">
-      <h1>Ипотека</h1>
+      <h1>Наши финансы</h1>
       <div class="today" id="today"></div>
     </div>
     <button class="icon-btn" id="theme" type="button" aria-label="Сменить тему">
@@ -33,11 +33,11 @@
     <!-- Главная -->
     <section class="screen" data-screen="home">
       <div id="home-empty" class="empty card" hidden>
-        <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg></div>
+        <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V4h6a4 4 0 0 1 0 8H6M6 16h8"/></svg></div>
         <h2>Пока нет ни одного кредита</h2>
-        <p class="muted">Внесите кредиты во вкладке «Данные» или загрузите файл резервной копии. Данные хранятся только в этом браузере.</p>
+        <p class="muted">Внесите кредиты во вкладке «Данные» или загрузите файл резервной копии.</p>
         <div class="actions" style="justify-content:center">
-          <a class="btn" href="#data">Добавить кредит</a>
+          <a class="btn accent" href="#data">Добавить кредит</a>
           <label class="btn ghost">Загрузить копию<input type="file" class="import-input" accept="application/json,.json" hidden></label>
         </div>
       </div>
@@ -50,7 +50,7 @@
         <div class="seg" id="sched-seg"></div>
         <div id="sched-summary" class="kv"></div>
         <div class="chart" id="sched-chart"></div>
-        <div class="legend"><span><i class="interest"></i>проценты</span><span><i class="principal"></i>тело долга</span><span><i class="line"></i>остаток</span><span><i class="today"></i>сегодня</span></div>
+        <div class="legend"><span><i class="interest"></i>проценты банку</span><span><i class="principal"></i>тело долга</span><span><i class="line"></i>остаток</span><span><i class="today"></i>сегодня</span></div>
       </div>
       <div class="card st-in" style="--i:1">
         <div class="row-between" style="margin-bottom:10px">
@@ -64,19 +64,51 @@
     <!-- Досрочка -->
     <section class="screen" data-screen="prepay" hidden>
       <div class="card st-in">
-        <h2>Калькулятор досрочки</h2>
+        <h2>Сколько вношу сверх платежа</h2>
         <form id="prepay-form" class="form">
-          <div class="seg" id="pp-seg"></div>
           <div class="grid2">
-            <label class="field">Сумма, ₽<input id="pp-amount" inputmode="decimal" autocomplete="off" placeholder="300 000"></label>
-            <label class="field">Дата<input id="pp-date" type="date"></label>
+            <div class="form" style="gap:8px">
+              <label class="field">Разово, ₽<input id="pp-lump" inputmode="decimal" autocomplete="off" placeholder="0"></label>
+              <div class="quick" data-for="pp-lump"><button type="button" data-v="0">0</button><button type="button" data-v="100000">100 тыс</button><button type="button" data-v="300000">300 тыс</button><button type="button" data-v="500000">500 тыс</button></div>
+            </div>
+            <div class="form" style="gap:8px">
+              <label class="field">Каждый месяц сверх, ₽<input id="pp-monthly" inputmode="decimal" autocomplete="off" placeholder="0"></label>
+              <div class="quick" data-for="pp-monthly"><button type="button" data-v="0">0</button><button type="button" data-v="5000">5 тыс</button><button type="button" data-v="10000">10 тыс</button><button type="button" data-v="20000">20 тыс</button></div>
+            </div>
           </div>
-          <button class="btn" type="submit">Посчитать</button>
+          <label class="field">Начать с<input id="pp-date" type="date"></label>
         </form>
+        <p class="sub" style="margin:10px 0 0">Расчёт обновляется сразу. Ниже — разбор по каждой ипотеке: что будет со сроком и платежом в каждом режиме.</p>
       </div>
-      <div class="card" id="pp-result" hidden></div>
+      <div id="pp-loans"></div>
       <div class="card" id="pp-where" hidden></div>
-      <div class="card st-in" style="--i:1" id="pp-list"></div>
+      <div class="card st-in" style="--i:3" id="pp-list"></div>
+    </section>
+
+    <!-- Деньги -->
+    <section class="screen" data-screen="money" hidden>
+      <div class="card st-in">
+        <h2>Наш бюджет</h2>
+        <form id="money-form" class="form">
+          <div class="grid2">
+            <label class="field">Доход семьи в месяц, ₽<input name="income" inputmode="decimal" placeholder="на руки"></label>
+            <label class="field">Расходы в месяц без ипотек, ₽<input name="expenses" inputmode="decimal" placeholder="еда, ЖКХ, транспорт…"></label>
+          </div>
+          <div class="grid2">
+            <label class="field">Накоплено сейчас, ₽<input name="savings" inputmode="decimal" placeholder="вклады, счета"></label>
+            <label class="field">Ставка вклада, % годовых<input name="depositRate" inputmode="decimal" placeholder="например, 14"></label>
+          </div>
+          <div class="grid2">
+            <label class="field">Подушка, месяцев расходов<input name="cushionMonths" inputmode="numeric" placeholder="6"></label>
+            <label class="field">Отложено на ремонт, ₽<input name="repairFund" inputmode="decimal" placeholder="0"></label>
+          </div>
+          <div id="money-deductions" class="form"></div>
+        </form>
+        <p class="sub" style="margin:10px 0 0">Цифры сохраняются только в этом браузере и сразу пересчитывают план ниже.</p>
+      </div>
+      <div id="money-out"></div>
+      <p class="eyebrow">Лайфхаки</p>
+      <div class="card st-in" style="--i:4"><div class="tips" id="tips"></div></div>
     </section>
 
     <!-- Данные -->
@@ -115,7 +147,7 @@
             </select>
           </label>
           <div class="actions">
-            <button class="btn" type="submit">Сохранить</button>
+            <button class="btn accent" type="submit">Сохранить</button>
             <button class="btn ghost" type="button" id="cancel-loan">Отмена</button>
             <button class="btn danger" type="button" id="delete-loan">Удалить</button>
           </div>
@@ -129,17 +161,17 @@
             <label class="field">Дата ДДУ<input name="ddDate" type="date"></label>
             <label class="field">Передача ключей до<input name="keysDate" type="date"></label>
           </div>
-          <button class="btn" type="submit">Сохранить</button>
+          <button class="btn accent" type="submit">Сохранить</button>
         </form>
       </div>
 
       <div class="card st-in" style="--i:2">
         <h2>Резервная копия</h2>
-        <p class="muted" style="margin-top:0">Всё хранится только в этом браузере. Чтобы перенести данные на телефон, скачайте копию здесь и загрузите её там.</p>
+        <p class="muted" style="margin-top:0">Изменения хранятся в этом браузере. Копия нужна, чтобы перенести их на другое устройство.</p>
         <div class="actions">
           <button class="btn" type="button" id="export">Скачать копию</button>
           <label class="btn ghost">Загрузить копию<input type="file" class="import-input" accept="application/json,.json" hidden></label>
-          <button class="btn danger" type="button" id="wipe">Стереть всё</button>
+          <button class="btn danger" type="button" id="wipe">Сбросить</button>
         </div>
       </div>
     </section>
@@ -149,7 +181,8 @@
     <span class="ind" aria-hidden="true"></span>
     <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>Главная</a>
     <a href="#schedule" data-tab="schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>График</a>
-    <a href="#prepay" data-tab="prepay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M8 13l4 4 4-4"/></svg>Досрочка</a>
+    <a href="#prepay" data-tab="prepay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Досрочка</a>
+    <a href="#money" data-tab="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="3"/><path d="M16 12.5h2M2 10h20"/></svg>Деньги</a>
     <a href="#data" data-tab="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>Данные</a>
   </nav>
 

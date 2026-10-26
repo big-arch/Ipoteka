@@ -1,14 +1,14 @@
 {
-  "name": "Ипотека — личный дашборд",
-  "short_name": "Ипотека",
+  "name": "Наши финансы",
+  "short_name": "Финансы",
   "description": "Платежи, график и досрочное погашение по ипотекам. Данные хранятся только на устройстве.",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0f1720",
-  "theme_color": "#0f1720",
+  "background_color": "#0c0f0e",
+  "theme_color": "#0c0f0e",
   "categories": ["finance", "productivity"],
   "icons": [
     { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
