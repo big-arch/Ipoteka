@@ -36,14 +36,14 @@
     return (balance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -n));
   }
 
-  // проценты по дням за период (from; to], с учётом високосных лет — так считает Сбер
+  // проценты по дням за период (from; to], с учётом високосных лет — так считает Сбер.
+  // Каждый день относится к году своей даты: 1 января — уже к новому году (сверено с графиком Сбера).
   function accrueDaily(balance, yearRate, fromT, toT) {
     let sum = 0;
     let t = fromT;
     while (t < toT) {
-      const y = new Date(t).getUTCFullYear();
-      const yearEnd = Date.UTC(y + 1, 0, 1);
-      const segEnd = Math.min(toT, yearEnd);
+      const y = new Date(t + DAY).getUTCFullYear();
+      const segEnd = Math.min(toT, Date.UTC(y, 11, 31));
       const days = Math.round((segEnd - t) / DAY);
       sum += (balance * yearRate * days) / (isLeap(y) ? 366 : 365);
       t = segEnd;
@@ -81,8 +81,10 @@
     let ei = 0;
     const rows = [];
 
+    // дата окончания по договору: последний платёж Сбер ставит на неё, а не на обычное число
+    const endT = loan.endDate ? parseDate(loan.endDate) : 0;
     for (let k = 0; k < n + 600 && balance > 0.004; k++) {
-      const t = paymentDate(firstT, k, payDay);
+      const t = endT && k === n - 1 ? endT : paymentDate(firstT, k, payDay);
       const applied = [];
 
       // досрочки между прошлым и этим платежом (в дату платежа — после него, ниже)

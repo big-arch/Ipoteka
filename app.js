@@ -141,6 +141,17 @@
     requestAnimationFrame(move);
   }
 
+  // страховки и оценка из графика банка: [{ loan, date, amount, kind }]
+  const INS_NAME = { life: "страхование жизни", property: "страхование квартиры", appraisal: "оценка квартиры" };
+  function insuranceEvents(fromISO, toISO) {
+    const out = [];
+    state.loans.forEach((loan) => (loan.insurance || []).forEach(([date, amount, kind]) => {
+      if (date >= fromISO && (!toISO || date <= toISO)) out.push({ loan, date, amount, kind });
+    }));
+    return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+  }
+  const addMonthsISO = (iso, m) => { const [y, mo, d] = iso.split("-").map(Number); return Calc.fmtISO(Date.UTC(y, mo - 1 + m, d)); };
+
   const calcLoan = (loan) => {
     const sched = Calc.schedule(loan, loan.prepays || []);
     return { loan, sched, st: Calc.statusAt(loan, sched, todayISO()) };
@@ -202,6 +213,7 @@
         const d = daysBetween(today, r.date);
         if (r !== nx && d >= 0 && d <= 45) later.push({ x, r });
       }));
+      insuranceEvents(today, addMonthsISO(today, 1)).forEach((e) => later.push({ x: { loan: { name: INS_NAME[e.kind] } }, r: { date: e.date, t: Calc.parseDate(e.date), payment: e.amount } }));
       later.sort((a, b) => a.r.t - b.r.t);
       html += `<div class="card hero st-in" style="--i:${i++}">
         <div class="hero-row">
@@ -249,6 +261,17 @@
         </div>
       </div>`;
     }).join("") + `</div>`;
+
+    // страховки
+    const ins = insuranceEvents(today);
+    if (ins.length) {
+      const nextIns = ins[0];
+      const yearSum = insuranceEvents(today, addMonthsISO(today, 12)).reduce((s, e) => s + e.amount, 0);
+      const dIns = daysBetween(today, nextIns.date);
+      html += `<div class="card st-in" style="--i:${i++}"><div class="row-between"><h2>Страховки</h2><span class="rate" style="--c:var(--s2)">${rub(yearSum)} за год</span></div>
+        <div class="loan-head" style="--c:var(--s2)"><span class="sw"></span><strong>${INS_NAME[nextIns.kind]} · ${esc(nextIns.loan.name)}</strong><b class="num">${rub(nextIns.amount)}</b></div>
+        <div class="sub" style="margin-top:6px">${dateRu(nextIns.date)} — через ${dIns} ${plural(dIns, "день", "дня", "дней")}. Сумма по графику банка; за месяц до даты сравните цену у других страховщиков, аккредитованных Сбером, и не пропустите продление — иначе ставка вырастет.</div></div>`;
+    }
 
     // ключи
     const { ddDate, keysDate } = state.settings;
@@ -524,7 +547,8 @@
     const out = $("money-out");
     const fin = state.finance;
     const all = state.loans.map(calcLoan);
-    const payments = all.reduce((s, x) => s + (x.st.next ? x.st.regularPayment : 0), 0);
+    const insMonthly = insuranceEvents(todayISO(), addMonthsISO(todayISO(), 12)).reduce((s, e) => s + e.amount, 0) / 12;
+    const payments = all.reduce((s, x) => s + (x.st.next ? x.st.regularPayment : 0), 0) + insMonthly;
     const income = Number(fin.income) || 0;
     const expenses = Number(fin.expenses) || 0;
     const savings = Number(fin.savings) || 0;
@@ -548,7 +572,7 @@
     let i = 1;
     const kpi = (c, label, valHtml, sub) => `<div class="card kpi st-in" style="--c:${c};--i:${i++}"><span class="glow"></span><div class="label"><i></i>${label}</div><div class="mid">${valHtml}</div><div class="sub">${sub}</div></div>`;
     let html = `<div class="kpis">
-      ${kpi(free >= 0 ? "var(--good)" : "var(--critical)", "Свободно в месяц", `<span data-count="${Math.abs(free)}">0</span><small>₽</small>`, free >= 0 ? "после расходов и ипотек" : "расходы больше дохода!")}
+      ${kpi(free >= 0 ? "var(--good)" : "var(--critical)", "Свободно в месяц", `<span data-count="${Math.abs(free)}">0</span><small>₽</small>`, free >= 0 ? `после расходов, ипотек и страховок (~${rub(insMonthly)}/мес.)` : "расходы больше дохода!")}
       ${kpi(pdn > 50 ? "var(--critical)" : pdn > 40 ? "var(--warning)" : "var(--good)", "Ипотеки от дохода", `<span data-count="${pdn}" data-fmt="int">0</span><small>%</small>`, pdn > 50 ? "высокая нагрузка" : pdn > 40 ? "на грани" : "нормально, до 40%")}
       ${kpi("var(--s3)", "Подушка", `<span data-count="${cushionHave / Math.max(1, expenses + payments)}" data-fmt="dec1">0</span><small>мес.</small>`, `цель — ${months} мес. (${rub(cushionNeed)})`)}
       ${kpi("var(--s2)", "Вклад после налога", `${depNet ? depNet.toFixed(1).replace(".", ",") : "—"}<small>%</small>`, dep ? `${rateStr(dep)}% минус НДФЛ 13%` : "впишите ставку вклада")}
@@ -623,7 +647,7 @@
     const f = $("loan-form");
     const l = state.loans.find((x) => x.id === id) || { mode: "daily" };
     $("editor-title").textContent = id ? "Изменить кредит" : "Новый кредит";
-    ["name", "balanceDate", "firstDate", "contractDate"].forEach((k) => (f[k].value = l[k] || ""));
+    ["name", "balanceDate", "firstDate", "contractDate", "endDate"].forEach((k) => (f[k].value = l[k] || ""));
     ["balance", "rate", "n", "payment", "origAmount"].forEach((k) => (f[k].value = l[k] ? String(l[k]).replace(".", ",") : ""));
     f.firstInterestOnly.checked = !!l.firstInterestOnly;
     f.mode.value = l.mode || "daily";
@@ -647,6 +671,7 @@
       payment: num(f.payment.value) || 0,
       origAmount: num(f.origAmount.value) || 0,
       contractDate: f.contractDate.value,
+      endDate: f.endDate.value,
       firstInterestOnly: f.firstInterestOnly.checked,
       mode: f.mode.value,
     };
@@ -687,9 +712,21 @@
   async function init() {
     $("today").textContent = new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
     const saved = await load();
-    const initial = saved && Array.isArray(saved.loans) && saved.loans.length ? saved : window.IPOTEKA_DEFAULT;
+    const def = window.IPOTEKA_DEFAULT;
+    if (saved && def && (saved.dataVersion || 1) < (def.dataVersion || 1)) {
+      // данные кредитов исправлены в новой версии: берём условия из неё, досрочки пользователя сохраняем
+      def.loans.forEach((d) => {
+        const mine = saved.loans.find((l) => l.id === d.id);
+        if (mine) Object.assign(mine, JSON.parse(JSON.stringify(d)), { prepays: mine.prepays || [] });
+        else saved.loans.push(JSON.parse(JSON.stringify(d)));
+      });
+      saved.dataVersion = def.dataVersion;
+      saved.settings = { ...def.settings, ...(saved.settings || {}) };
+    }
+    const initial = saved && Array.isArray(saved.loans) && saved.loans.length ? saved : def;
     if (initial) state = { ...blank(), ...JSON.parse(JSON.stringify(initial)), settings: { ...blank().settings, ...(initial.settings || {}) } };
     state.finance = state.finance || {};
+    save();
 
     $("theme").addEventListener("click", () => {
       const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";

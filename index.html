@@ -139,6 +139,8 @@
             <label class="field">Исходная сумма кредита, ₽<input name="origAmount" inputmode="decimal" placeholder="для шкалы прогресса"></label>
             <label class="field">Дата договора<input name="contractDate" type="date"></label>
           </div>
+          <label class="field">Дата окончания по договору<input name="endDate" type="date"></label>
+          <p class="hint">Если в графике банка последний платёж стоит не в обычное число (как у Сбера — в дату окончания срока), укажите её, а в «Платежей осталось» посчитайте и этот платёж.</p>
           <label class="check"><input type="checkbox" name="firstInterestOnly"> Первый платёж — только проценты</label>
           <label class="field">Как начислять проценты
             <select name="mode">
