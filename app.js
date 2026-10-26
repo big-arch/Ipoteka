@@ -554,7 +554,8 @@
   async function init() {
     $("today").textContent = new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
     const saved = await load();
-    if (saved && Array.isArray(saved.loans)) state = { ...blank(), ...saved, settings: { ...blank().settings, ...(saved.settings || {}) } };
+    const initial = saved && Array.isArray(saved.loans) && saved.loans.length ? saved : window.IPOTEKA_DEFAULT;
+    if (initial) state = { ...blank(), ...JSON.parse(JSON.stringify(initial)), settings: { ...blank().settings, ...(initial.settings || {}) } };
 
     $("theme").addEventListener("click", () => {
       const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";

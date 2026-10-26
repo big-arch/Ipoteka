@@ -1,9 +1,10 @@
-const CACHE_NAME = "ipoteka-pwa-v2";
+const CACHE_NAME = "ipoteka-pwa-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./calc.js",
+  "./data.js",
   "./app.js",
   "./manifest.webmanifest",
   "./icons/icon.svg"
